@@ -1,0 +1,6 @@
+services:
+  api:
+    build: .
+    container_name: gestor_tareas_academicas
+    ports:
+      - "8088:8080"

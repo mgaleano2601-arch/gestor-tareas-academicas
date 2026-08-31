@@ -1,0 +1,58 @@
+name: CI Pipeline Spring Boot
+
+on:
+  push:
+    branches: [main, develop, diagnostico-arquitectura]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, tests y cobertura
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Preparar Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Verificar variable de entorno
+        env:
+          APP_ENV: ${{ secrets.APP_ENV_DEMO }}
+        run: |
+          if [ -n "$APP_ENV" ]; then
+            echo "El ambiente del pipeline esta configurado mediante GitHub Secrets"
+          else
+            echo "::warning::APP_ENV_DEMO aun no esta configurado"
+          fi
+
+      - name: Compilar, ejecutar pruebas y generar cobertura
+        run: ./mvnw -B clean verify
+
+      - name: Publicar reporte JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-jacoco
+          path: target/site/jacoco
+          if-no-files-found: error
+
+      - name: Publicar resultados de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-junit
+          path: target/surefire-reports
+          if-no-files-found: error
